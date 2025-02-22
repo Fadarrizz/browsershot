@@ -593,6 +593,11 @@ class Browsershot
         return $this->setUserDataDir($absolutePath);
     }
 
+    public function persistentCookies(): static
+    {
+        return $this->setOption('persistentCookies', true);
+    }
+
     public function writeOptionsToFile(): static
     {
         $this->writeOptionsToFile = true;

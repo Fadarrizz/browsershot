@@ -24,6 +24,30 @@ const failedRequests = [];
 
 const pageErrors = [];
 
+const CookieManager = {
+    storagePath: './cookies.json',
+
+    saveCookies: async (page) => {
+        try {
+            const cookies = await page.cookies();
+            fs.writeFileSync(CookieManager.storagePath, JSON.stringify(cookies));
+        } catch (error) {
+            console.error('Failed to save cookies:', error);
+        }
+    },
+
+    loadCookies: () => {
+        try {
+            if (fs.existsSync(CookieManager.storagePath)) {
+                return JSON.parse(fs.readFileSync(CookieManager.storagePath));
+            }
+        } catch (error) {
+            console.error('Failed to load cookies:', error);
+        }
+        return [];
+    }
+};
+
 const getOutput = async (request, page = null) => {
     let output = {
         requestsList,
@@ -106,6 +130,14 @@ const callChrome = async pup => {
         }
 
         page = await browser.newPage();
+
+        if (request.options && request.options.persistentCookies) {
+            const savedCookies = CookieManager.loadCookies();
+
+            if (savedCookies.length > 0) {
+                await page.setCookie(...savedCookies);
+            }
+        }
 
         if (request.options && request.options.disableJavascript) {
             await page.setJavaScriptEnabled(false);
@@ -397,6 +429,10 @@ const callChrome = async pup => {
 
         if (request.options.waitForSelector) {
             await page.waitForSelector(request.options.waitForSelector, (request.options.waitForSelectorOptions ? request.options.waitForSelectorOptions :  undefined));
+        }
+
+        if (request.options && request.options.persistentCookies) {
+            await CookieManager.saveCookies(page);
         }
 
         console.log(await getOutput(request, page));
